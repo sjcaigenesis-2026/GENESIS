@@ -2,7 +2,6 @@
 
 <html lang="en">
 <head>
-  <meta name="fast2sms" content="HDChbgrt9QN9Q9S8hg0MnCSPHg6jztqK">
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>SJC AI Genesis — St. Joseph's College Nainital</title>
@@ -1240,8 +1239,9 @@
 <div class="reg-step-dot active" id="dot1"></div>
 <div class="reg-step-dot" id="dot2"></div>
 <div class="reg-step-dot" id="dot3"></div>
+<div class="reg-step-dot" id="dot4"></div>
 </div>
-<div class="reg-step-label" id="stepLabel">Step 1 of 3 — Team details</div>
+<div class="reg-step-label" id="stepLabel">Step 1 of 4 — Team details</div>
 
 <form autocomplete="off" class="reg-form" id="regForm" onsubmit="return false;">
 
@@ -1326,23 +1326,44 @@
     <div class="reg-status" id="regStatus2"></div>
     <div class="wizard-nav">
       <button class="btn btn-ghost" id="backTo1" type="button">← Back</button>
-      <button class="btn btn-primary" disabled="" id="toStep3" type="button">Review &amp; submit →</button>
+      <button class="btn btn-primary" disabled="" id="toStep3" type="button">Continue to email verification →</button>
     </div>
   </div>
 
-  <!-- STEP 3: REVIEW & SUBMIT -->
+  <!-- STEP 3: VERIFY EMAIL (OTP via Gmail) -->
   <div class="step-panel" id="panel3">
-    <div class="reg-summary" id="regSummary"></div>
-    <button class="btn btn-primary" id="submitRegBtn" style="width:100%;justify-content:center;" type="button">Submit registration →</button>
+    <div class="verify-box">
+      <div class="vb-title">Verify your email address</div>
+      <div class="vb-sub">We'll email a one-time code to <span id="emailDisplay">—</span> to confirm you own it.</div>
+      <div class="otp-row">
+        <button class="btn-sm" id="sendEmailOtpBtn" type="button">Send OTP</button>
+      </div>
+      <div class="otp-row" id="emailOtpRow" style="display:none;margin-top:16px;">
+        <input id="emailOtpInput" inputmode="numeric" maxlength="6" placeholder="6-digit code"/>
+        <button class="btn-sm" id="verifyEmailOtpBtn" type="button">Verify</button>
+      </div>
+      <div class="verified-tag" id="emailVerifiedTag" style="display:none;">Email verified</div>
+    </div>
     <div class="reg-status" id="regStatus3"></div>
     <div class="wizard-nav">
       <button class="btn btn-ghost" id="backTo2" type="button">← Back</button>
+      <button class="btn btn-primary" disabled="" id="toStep4" type="button">Review &amp; submit →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: REVIEW & SUBMIT -->
+  <div class="step-panel" id="panel4">
+    <div class="reg-summary" id="regSummary"></div>
+    <button class="btn btn-primary" id="submitRegBtn" style="width:100%;justify-content:center;" type="button">Submit registration →</button>
+    <div class="reg-status" id="regStatus4"></div>
+    <div class="wizard-nav">
+      <button class="btn btn-ghost" id="backTo3" type="button">← Back</button>
       <span></span>
     </div>
   </div>
 
-  <!-- STEP 4: SUCCESS -->
-  <div class="step-panel" id="panel4">
+  <!-- STEP 5: SUCCESS -->
+  <div class="step-panel" id="panel5">
     <div class="success-panel">
       <div class="sp-icon">✓</div>
       <div class="vb-title" style="font-size:19px;">You're registered!</div>
@@ -1615,20 +1636,21 @@ document.querySelectorAll('.pillar').forEach(card=>{
 const REG_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqlxmPAdqotGJXyPjqRp7br_d4Ordrm_UTBJ9rIgYJy88ViRe3Ha-G6eL--WesmSaTbQ/exec";
 
 // Phone verification: a real 6-digit OTP is texted to the number via SMS
-// (see Code.gs — FAST2SMS_API_KEY script property). Email is only checked
-// in the background for format/typos/disposable domains — no OTP is ever
-// sent to email.
+// (see Code.gs — FAST2SMS_API_KEY script property, Quick SMS route).
+// Email verification: a real 6-digit OTP is emailed via Gmail (free,
+// MailApp — no extra setup needed in Code.gs beyond the one-time Gmail
+// authorization).
 // ============================================================================
 
-let phoneVerified = false;
-let phoneVerifyToken = null;
+let phoneVerified = false, emailVerified = false;
+let phoneVerifyToken = null, emailVerifyToken = null;
 
 function showStep(n){
-  for(let i=1;i<=4;i++){
+  for(let i=1;i<=5;i++){
     const p = document.getElementById('panel'+i);
     if(p) p.classList.toggle('active', i===n);
   }
-  for(let i=1;i<=3;i++){
+  for(let i=1;i<=4;i++){
     const d = document.getElementById('dot'+i);
     if(!d) continue;
     d.classList.remove('active','done');
@@ -1636,10 +1658,11 @@ function showStep(n){
     else if(i === n) d.classList.add('active');
   }
   const labels = {
-    1:'Step 1 of 3 — Team details',
-    2:'Step 2 of 3 — Verify phone',
-    3:'Step 3 of 3 — Review & submit',
-    4:''
+    1:'Step 1 of 4 — Team details',
+    2:'Step 2 of 4 — Verify phone',
+    3:'Step 3 of 4 — Verify email',
+    4:'Step 4 of 4 — Review & submit',
+    5:''
   };
   const lbl = document.getElementById('stepLabel');
   if(lbl) lbl.textContent = labels[n] || '';
@@ -1648,8 +1671,8 @@ function showStep(n){
 const regForm = document.getElementById('regForm');
 if(regForm){
 
-  // ---- STEP 1: details -> validate -> background email check -> step 2 ----
-  document.getElementById('toStep2').addEventListener('click', async ()=>{
+  // ---- STEP 1: details -> validate -> step 2 ----
+  document.getElementById('toStep2').addEventListener('click', ()=>{
     const status = document.getElementById('regStatus1');
     status.textContent=''; status.className='reg-status';
     const required = ['rName','rEmail','rPhone','rCollege','rTeam','rMember1','rMember2','rMember3'];
@@ -1666,40 +1689,13 @@ if(regForm){
       status.classList.add('err');
       return;
     }
-    const email = document.getElementById('rEmail').value.trim();
-    if(REG_SCRIPT_URL.includes('PASTE_YOUR')){
-      status.textContent = "Backend isn't connected yet.";
-      status.classList.add('err');
-      return;
-    }
-
-    const btn = document.getElementById('toStep2');
-    btn.disabled = true; btn.textContent = 'Checking email...';
-    try{
-      const res = await fetch(REG_SCRIPT_URL, {
-        method:'POST',
-        headers:{'Content-Type':'text/plain'},
-        body: JSON.stringify({ action:'checkEmail', email })
-      });
-      const out = await res.json();
-      if(!out.ok){
-        status.textContent = out.reason || "That email address doesn't look right — check for typos.";
-        status.classList.add('err');
-        return;
-      }
-    }catch(err){
-      status.textContent = 'Could not verify email right now — try again.';
-      status.classList.add('err');
-      return;
-    }finally{
-      btn.disabled = false; btn.textContent = 'Continue to phone verification →';
-    }
-
     document.getElementById('phoneDisplay').textContent = '+91 ' + phone;
+    document.getElementById('emailDisplay').textContent = document.getElementById('rEmail').value.trim();
     showStep(2);
   });
   document.getElementById('backTo1').addEventListener('click', ()=>showStep(1));
   document.getElementById('backTo2').addEventListener('click', ()=>showStep(2));
+  document.getElementById('backTo3').addEventListener('click', ()=>showStep(3));
 
   // ---- STEP 2: send OTP by SMS, then verify it ----
   document.getElementById('sendPhoneOtpBtn').addEventListener('click', async ()=>{
@@ -1765,16 +1761,83 @@ if(regForm){
 
   document.getElementById('toStep3').addEventListener('click', ()=>{
     if(!phoneVerified) return;
+    showStep(3);
+  });
+
+  // ---- STEP 3: send OTP by email, then verify it ----
+  document.getElementById('sendEmailOtpBtn').addEventListener('click', async ()=>{
+    const status = document.getElementById('regStatus3');
+    status.textContent=''; status.className='reg-status';
+    if(REG_SCRIPT_URL.includes('PASTE_YOUR')){
+      status.textContent = "Backend isn't connected yet.";
+      status.classList.add('err');
+      return;
+    }
+    const email = document.getElementById('rEmail').value.trim();
+    const btn = document.getElementById('sendEmailOtpBtn');
+    btn.disabled = true; btn.textContent = 'Sending...';
+    try{
+      const res = await fetch(REG_SCRIPT_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({ action:'sendEmailOtp', email })
+      });
+      const out = await res.json();
+      if(out.ok){
+        document.getElementById('emailOtpRow').style.display = 'flex';
+        status.textContent = 'Code sent — check your inbox.';
+        status.classList.add('ok');
+      }else{
+        status.textContent = out.reason || 'Could not send OTP.';
+        status.classList.add('err');
+      }
+    }catch(err){
+      status.textContent = 'Network error — try again.';
+      status.classList.add('err');
+    }finally{
+      btn.disabled = false; btn.textContent = 'Resend OTP';
+    }
+  });
+
+  document.getElementById('verifyEmailOtpBtn').addEventListener('click', async ()=>{
+    const status = document.getElementById('regStatus3');
+    const email = document.getElementById('rEmail').value.trim();
+    const otp = document.getElementById('emailOtpInput').value.trim();
+    try{
+      const res = await fetch(REG_SCRIPT_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({ action:'verifyEmailOtp', email, otp })
+      });
+      const out = await res.json();
+      if(out.ok){
+        emailVerified = true;
+        emailVerifyToken = out.token;
+        document.getElementById('emailVerifiedTag').style.display = 'inline-flex';
+        document.getElementById('toStep4').disabled = false;
+        status.textContent = ''; status.className = 'reg-status';
+      }else{
+        status.textContent = out.error || 'Incorrect code.';
+        status.classList.add('err');
+      }
+    }catch(err){
+      status.textContent = 'Network error — try again.';
+      status.classList.add('err');
+    }
+  });
+
+  document.getElementById('toStep4').addEventListener('click', ()=>{
+    if(!emailVerified) return;
     document.getElementById('regSummary').innerHTML =
       '<b>' + document.getElementById('rTeam').value.trim() + '</b> — ' +
       document.getElementById('rName').value.trim() + ' · ' +
       document.getElementById('rEmail').value.trim() + ' · +91 ' + document.getElementById('rPhone').value.trim();
-    showStep(3);
+    showStep(4);
   });
 
-  // ---- STEP 3: submit registration directly (no payment) ----
+  // ---- STEP 4: submit registration directly (no payment) ----
   document.getElementById('submitRegBtn').addEventListener('click', async ()=>{
-    const status = document.getElementById('regStatus3');
+    const status = document.getElementById('regStatus4');
     status.textContent=''; status.className='reg-status';
     if(REG_SCRIPT_URL.includes('PASTE_YOUR')){
       status.textContent = "Backend isn't connected yet.";
@@ -1797,6 +1860,7 @@ if(regForm){
       member5: document.getElementById('rMember5').value.trim(),
       note: document.getElementById('rNote').value.trim(),
       phoneVerifyToken: phoneVerifyToken,
+      emailVerifyToken: emailVerifyToken,
       submittedAt: new Date().toISOString()
     };
 
@@ -1808,7 +1872,7 @@ if(regForm){
       });
       const out = await res.json();
       if(out.ok){
-        showStep(4);
+        showStep(5);
         fireConfetti();
       }else{
         status.textContent = out.error || 'Could not submit registration — try again.';
