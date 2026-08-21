@@ -768,10 +768,10 @@
   /* ---------- ORBITS & SATELLITES ---------- */
   .orbit-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
   .orbit-track{
-    position:absolute;left:0;right:0;height:180px;
+    position:absolute;left:0;right:0;height:260px;
   }
-  .orbit-track.top{ top:calc(28vh - 90px); }
-  .orbit-track.bottom{ top:calc(82vh - 90px); }
+  .orbit-track.top{ top:calc(28vh - 130px); }
+  .orbit-track.bottom{ top:calc(82vh - 130px); }
   .orbit-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
   .orbit-track.top .orbit-svg path{
     fill:none;stroke:transparent;stroke-width:0;
@@ -1263,7 +1263,7 @@
 <span>Will food and accommodation be provided?</span>
 <span class="faq-toggle">+</span>
 </button>
-<div class="faq-a"><p>This is being finalized. Updates will be posted on Instagram and added here once confirmed.</p></div>
+<div class="faq-a"><p>Food will be provided during the event. Accommodation is not provided, so outstation teams should plan their own stay in Nainital.</p></div>
 </div>
 <div class="faq-item">
 <button class="faq-q">
@@ -1583,7 +1583,7 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
 // ---- Bent orbit paths (kept in sync with satellite motion) ----
 (function(){
-  function setupOrbit(trackSel, svgId, pathId, satId, bendDir){
+  function setupOrbit(trackSel, svgId, pathId, satId, bendDir, bendStrength){
     const track = document.querySelector(trackSel);
     const svg = document.getElementById(svgId);
     const pathEl = document.getElementById(pathId);
@@ -1593,7 +1593,7 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
       const w = track.offsetWidth;
       const h = track.offsetHeight;
       const midY = h/2;
-      const bend = Math.min(h*0.5, Math.max(60, w*0.045)); // gentle bend that scales with track width
+      const bend = Math.min(h*0.5, Math.max(bendStrength*0.6, w*bendStrength*0.001));
       const ctrlY = bendDir === 'up' ? midY - bend : midY + bend;
       svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
       svg.setAttribute('width', w);
@@ -1605,8 +1605,8 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     update();
     window.addEventListener('resize', update);
   }
-  setupOrbit('.orbit-track.top', 'orbitSvgTop', 'orbitPathTop', 'satTop', 'up');
-  setupOrbit('.orbit-track.bottom', 'orbitSvgBottom', 'orbitPathBottom', 'satBottom', 'down');
+  setupOrbit('.orbit-track.top', 'orbitSvgTop', 'orbitPathTop', 'satTop', 'up', 130);
+  setupOrbit('.orbit-track.bottom', 'orbitSvgBottom', 'orbitPathBottom', 'satBottom', 'down', 25);
 })();
 
 // ---- Cursor spotlight (site-wide) ----
